@@ -1,7 +1,7 @@
 // Live Airtable status writer for the job-search dashboard.
 // Server-side only: AIRTABLE_API_KEY is a Vercel production env var.
 const BASE = "appYgOm56KY7SVDNl";
-const TABLE = "tblnJ8RyG0W0NuJNl";
+const TABLE = "tblnJ8RyG0W0NuJN4";
 const KEY = process.env.AIRTABLE_API_KEY;
 
 const STATUS_MAP = {

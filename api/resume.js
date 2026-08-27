@@ -1,7 +1,7 @@
 // Returns the Airtable Attachments URL for a record's tailored resume.
 // Server-side only: AIRTABLE_API_KEY is a Vercel production env var.
 const BASE = "appYgOm56KY7SVDNl";
-const TABLE = "tblnJ8RyG0W0NuJNl";
+const TABLE = "tblnJ8RyG0W0NuJN4";
 const KEY = process.env.AIRTABLE_API_KEY;
 
 export default async function handler(req, res) {

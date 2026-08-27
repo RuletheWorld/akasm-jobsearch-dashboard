@@ -1,7 +1,7 @@
 // Live Airtable reader for the job-search dashboard.
 // The AIRTABLE_API_KEY is a Vercel production env var (server-side only).
 const BASE = "appYgOm56KY7SVDNl";
-const TABLE = "tblnJ8RyG0W0NuJNl";
+const TABLE = "tblnJ8RyG0W0NuJN4";
 const KEY = process.env.AIRTABLE_API_KEY;
 
 export default async function handler(req, res) {

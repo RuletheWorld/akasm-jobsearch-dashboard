@@ -5,7 +5,7 @@
 // Server-side only. Env: AIRTABLE_API_KEY, GMAIL_USER, GMAIL_APP_PASSWORD.
 import nodemailer from "nodemailer";
 const BASE = "appYgOm56KY7SVDNl";
-const TABLE = "tblnJ8RyG0W0NuJNl";
+const TABLE = "tblnJ8RyG0W0NuJN4";
 const KEY = process.env.AIRTABLE_API_KEY;
 
 async function airtableGet(id) {
