@@ -21,9 +21,12 @@ export default async function handler(req, res) {
     const j = await r.json();
     if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
     const atts = (j.fields && j.fields["Attachments"]) || [];
+    // Prefer a PDF (the tailored resume from the CI pipeline), but fall back to
+    // any attachment (e.g. the Drifter row's GitHub release URL) so it still opens.
     const pdf = atts.find((a) => /\.pdf$/i.test(a.filename || ""));
-    if (pdf) {
-      res.status(200).json({ ok: true, url: pdf.url, filename: pdf.filename });
+    const chosen = pdf || atts[0];
+    if (chosen) {
+      res.status(200).json({ ok: true, url: chosen.url, filename: chosen.filename });
     } else {
       res.status(200).json({ ok: true, url: null, note: "No resume attached to this row yet" });
     }
