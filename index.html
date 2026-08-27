@@ -147,11 +147,18 @@ function card(r, isEmail) {
     ? `<a class="a link" href="${r.link}" target="_blank" rel="noopener">Open posting</a>` : "";
   const email = isEmail ? `<span class="email-tag">→ ${esc(emailFrom(r.notes) || "")}</span>` : "";
   let acts = "";
+  // View resume (reads Airtable Attachments, opens inline)
+  acts += `<button class="a" onclick="viewResume('${r.id}')">Resume</button>`;
   if (r.status === "Ready") {
     acts += `<button class="a app" onclick="act('mark_applied','${r.id}')">${ACTION_LABEL.mark_applied}</button>`;
   }
   if (r.status !== "Interviewing" && r.status !== "Offer") {
     acts += `<button class="a" onclick="act('mark_interviewing','${r.id}')">Interviewing</button>`;
+  }
+  // Email-apply row: show + send (send requires explicit click = consent)
+  if (isEmail) {
+    acts += `<button class="a link" onclick="viewEmail('${r.id}')">Draft</button>`;
+    acts += `<button class="a app" onclick="sendEmail('${r.id}')">Send (reviewed)</button>`;
   }
   if (r.status === "Ready" || r.status === "Applied") {
     acts += `<button class="a" onclick="act('reject','${r.id}')">Reject</button>`;
@@ -185,11 +192,41 @@ async function runPipeline() {
       body: JSON.stringify({ action: "refresh" }),
     });
   } catch (e) {}
-  // The actual pipeline is fired by the agent/cron; this button just signals.
+}
+
+async function viewResume(id) {
+  const r = await fetch('/api/resume?record_id=' + id);
+  const d = await r.json();
+  if (d.ok && d.url) window.open(d.url, '_blank');
+  else alert('No resume attached yet for this row.');
 }
 
 function esc(s) {
-  return (s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return (s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+async function viewEmail(id) {
+  try {
+    const r = await fetch('/api/records');
+    const d = await r.json();
+    const rec = (d.records || []).find((x) => x.id === id);
+    const email = rec ? emailFrom(rec.notes) : null;
+    if (!email) return alert('No APPLY_EMAIL set for this row.');
+    alert('Recipient: ' + email + '\n\nThe draft plus attached resume is sent when you click Send (reviewed).');
+  } catch (e) { alert('Could not load draft: ' + e.message); }
+}
+
+async function sendEmail(id) {
+  if (!confirm('Send the tailored application email with resume attached? Marks the row Applied.')) return;
+  try {
+    const r = await fetch('/api/send', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ record_id: id, approve: true }),
+    });
+    const d = await r.json();
+    if (d.ok) { alert('Sent to ' + d.sent_to + (d.attached ? ' (resume attached)' : '')); load(); }
+    else alert('Send failed: ' + (d.error || 'unknown'));
+  } catch (e) { alert('Network error: ' + e.message); }
 }
 
 load();

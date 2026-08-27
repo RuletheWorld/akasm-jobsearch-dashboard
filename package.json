@@ -5,5 +5,8 @@
   "description": "Raphael Merchant job-search dashboard — live Vercel + Airtable",
   "scripts": {
     "start": "vercel dev"
+  },
+  "dependencies": {
+    "nodemailer": "^6.10.1"
   }
 }
