@@ -1,27 +1,37 @@
-// Web button -> fires the Mac pipeline via the ngrok-tunneled secret-gated
-// trigger. The RUN_SECRET and the current ngrok URL are Vercel env vars, so
-// the Mac endpoint is never advertised and the secret never reaches the browser.
-const RUN_SECRET = process.env.JOBSEARCH_RUN_SECRET;
-const TRIGGER_URL = process.env.JOBSEARCH_TRIGGER_URL; // ngrok https URL
+// Web "Run search" -> triggers the GitHub Actions pipeline (fully cloud, no Mac).
+// Holds GITHUB_TOKEN + repo as Vercel env vars; the button just calls this.
+const GH_TOKEN = process.env.GH_PAT;            // a PAT with actions:write on the repo
+const REPO = process.env.GH_REPO || "RuletheWorld/test-akasm-jobsearch";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ ok: false, error: "method not allowed" });
     return;
   }
-  if (!RUN_SECRET || !TRIGGER_URL) {
-    res.status(500).json({ ok: false, error: "trigger not configured" });
+  if (!GH_TOKEN) {
+    res.status(500).json({ ok: false, error: "GH_PAT not configured" });
     return;
   }
   try {
-    const r = await fetch(TRIGGER_URL + "/", {
+    const url = `https://api.github.com/repos/${REPO}/actions/workflows/pipeline.yml/dispatches`;
+    const r = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ secret: RUN_SECRET }),
+      headers: {
+        Authorization: `Bearer ${GH_TOKEN}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "jobsearch-dashboard",
+      },
+      body: JSON.stringify({ ref: "main" }),
     });
-    const d = await r.json();
-    res.status(r.status).json(d);
+    if (r.status === 204) {
+      res.status(202).json({ ok: true, status: "pipeline dispatched",
+        note: "GitHub Actions is running the hunt in the cloud; board refreshes when it finishes." });
+    } else {
+      const t = await r.text();
+      res.status(r.status).json({ ok: false, error: "dispatch failed: " + t.slice(0, 200) });
+    }
   } catch (e) {
-    res.status(502).json({ ok: false, error: "trigger unreachable: " + String(e) });
+    res.status(502).json({ ok: false, error: "github unreachable: " + String(e) });
   }
 }
