@@ -187,11 +187,17 @@ async function runPipeline() {
   showErr(""); // clear
   document.getElementById("sub").textContent = "Kicking off a fresh search… (runs in background)";
   try {
-    await fetch("/api/action", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "refresh" }),
+    const r = await fetch("/api/run", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
     });
-  } catch (e) {}
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById("foot").textContent =
+        "Pipeline triggered — the board refreshes automatically when it finishes (usually a few minutes).";
+    } else {
+      showErr(d.error || "Could not start pipeline");
+    }
+  } catch (e) { showErr("Network error: " + e.message); }
 }
 
 async function viewResume(id) {
