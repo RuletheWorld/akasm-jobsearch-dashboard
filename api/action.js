@@ -8,6 +8,7 @@ const STATUS_MAP = {
   mark_applied: "Applied",
   mark_interviewing: "Interviewing",
   mark_offer: "Offer",
+  mark_ready: "Ready",
   reject: "Rejected",
 };
 

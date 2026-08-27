@@ -149,19 +149,22 @@ function card(r, isEmail) {
   let acts = "";
   // View resume (reads Airtable Attachments, opens inline)
   acts += `<button class="a" onclick="viewResume('${r.id}')">Resume</button>`;
-  if (r.status === "Ready") {
-    acts += `<button class="a app" onclick="act('mark_applied','${r.id}')">${ACTION_LABEL.mark_applied}</button>`;
-  }
-  if (r.status !== "Interviewing" && r.status !== "Offer") {
+  // All forward-stage buttons available from any state so nothing is "stuck"
+  if (r.status !== "Applied")
+    acts += `<button class="a app" onclick="act('mark_applied','${r.id}')">Apply</button>`;
+  if (r.status !== "Interviewing")
     acts += `<button class="a" onclick="act('mark_interviewing','${r.id}')">Interviewing</button>`;
-  }
+  if (r.status !== "Offer")
+    acts += `<button class="a" onclick="act('mark_offer','${r.id}')">Offer</button>`;
+  if (r.status !== "Rejected")
+    acts += `<button class="a" onclick="act('reject','${r.id}')">Reject</button>`;
+  // Undo: always able to send back to Ready
+  if (r.status !== "Ready")
+    acts += `<button class="a" onclick="act('mark_ready','${r.id}')">Set Ready</button>`;
   // Email-apply row: show + send (send requires explicit click = consent)
   if (isEmail) {
     acts += `<button class="a link" onclick="viewEmail('${r.id}')">Draft</button>`;
     acts += `<button class="a app" onclick="sendEmail('${r.id}')">Send (reviewed)</button>`;
-  }
-  if (r.status === "Ready" || r.status === "Applied") {
-    acts += `<button class="a" onclick="act('reject','${r.id}')">Reject</button>`;
   }
   return `<div class="card ${cls}">
     <div class="row1"><span class="co">${esc(r.company)}</span><span class="badge ${cls}">${r.status}</span></div>
@@ -208,7 +211,7 @@ async function viewResume(id) {
 }
 
 function esc(s) {
-  return (s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  return (s || '').replace(/[&<>\"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
 async function viewEmail(id) {
