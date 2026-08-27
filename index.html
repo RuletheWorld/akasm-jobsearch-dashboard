@@ -176,9 +176,15 @@ function card(r, isEmail) {
 
 async function act(verb, id) {
   try {
+    let reason = "";
+    if (verb === "reject") {
+      reason = prompt("Why reject? (optional — helps the pipeline stop surfacing similar roles)", "") || "";
+    }
+    const body = { action: verb, record_id: id };
+    if (reason) body.reason = reason;
     const r = await fetch("/api/action", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: verb, record_id: id }),
+      body: JSON.stringify(body),
     });
     const d = await r.json();
     if (!d.ok) return showErr(d.error || "Action failed");

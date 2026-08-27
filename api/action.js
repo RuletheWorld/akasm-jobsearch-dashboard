@@ -64,9 +64,10 @@ export default async function handler(req, res) {
     if (action === "reject") {
       const notes = await getNotes(recId);
       const today = new Date().toISOString().slice(0, 10);
+      const reasonLine = (body.reason ? ` [reject-reason: ${body.reason}]` : "");
       await patch(recId, {
         Status: "Rejected",
-        Notes: `${notes}\n[dashboard ${today}] Rejected via board`.trim(),
+        Notes: `${notes}\n[dashboard ${today}] Rejected via board${reasonLine}`.trim(),
       });
       res.status(200).json({ ok: true });
       return;
