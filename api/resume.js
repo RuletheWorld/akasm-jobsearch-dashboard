@@ -26,7 +26,10 @@ export default async function handler(req, res) {
     const pdf = atts.find((a) => /\.pdf$/i.test(a.filename || ""));
     const chosen = pdf || atts[0];
     if (chosen) {
-      res.status(200).json({ ok: true, url: chosen.url, filename: chosen.filename });
+      // 302 redirect straight to the attachment URL — browsers open the PDF
+      // reliably via a native anchor click (no client-side window.open needed).
+      res.writeHead(302, { Location: chosen.url });
+      res.end();
     } else {
       res.status(200).json({ ok: true, url: null, note: "No resume attached to this row yet" });
     }

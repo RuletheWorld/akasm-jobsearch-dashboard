@@ -149,14 +149,14 @@ function card(r, isEmail) {
   const meta = [r.location, r.salary, r.source].filter(Boolean).join(" · ");
   const fit = r.fit ? `<span class="fit">${r.fit}</span>` : "";
   const link = r.link
-    ? `<a class="a link" href="${escAttr(r.link)}" target="_blank" rel="noopener" onclick="return openPosting(event,'${r.id}')">Open posting</a>` : "";
+    ? `<a class="a link" href="${escAttr(r.link)}" target="_blank" rel="noopener">Open posting</a>` : "";
   const email = isEmail ? `<span class="email-tag">→ ${esc(emailFrom(r.notes) || "")}</span>` : "";
   let acts = "";
   // View resume (reads Airtable Attachments, opens inline)
-  acts += `<button class="a" onclick="viewResume('${r.id}')">Resume</button>`;
+  acts += `<a class="a" href="/api/resume?record_id=${r.id}" target="_blank" rel="noopener">Resume</a>`;
   // All forward-stage buttons available from any state so nothing is "stuck"
   if (r.status !== "Applied")
-    acts += `<button class="a app" onclick="applyJob('${r.id}')">Apply</button>`;
+    acts += `<a class="a app" href="${r.link ? escAttr(r.link) : '#'}" target="_blank" rel="noopener" onclick="applyMark(event,'${r.id}')">Apply</a>`;
   if (r.status !== "Interviewing")
     acts += `<button class="a" onclick="act('mark_interviewing','${r.id}')">Interviewing</button>`;
   if (r.status !== "Offer")
@@ -214,70 +214,17 @@ async function runPipeline() {
   } catch (e) { showErr("Network error: " + e.message); }
 }
 
-// Open the job posting in a new tab. Uses window.open inside the user gesture
-// (reliable, not blocked by popup blockers); if a blocker still interferes,
-// returns true so the native anchor (href + target=_blank) handles it.
-function openPosting(e, id) {
+// Apply: the anchor already opened the posting in a new tab (native target=_blank,
+// never blocked). This just marks the row Applied in the background (non-blocking),
+// so the user can still act on the posting they just opened.
+function applyMark(e, id) {
   const r = BYID[id] || {};
-  const url = r.link;
-  if (!url) {
-    alert("No job posting link on file for this row.");
-    e.preventDefault();
-    return false;
-  }
-  const w = window.open(url, "_blank");
-  if (w) { e.preventDefault(); return false; }
-  return true; // popup blocked -> fall back to native anchor
-}
-
-// Apply: PRIMARY action is to open the live job posting in a new tab, then
-// surface the tailored resume for the role, then mark the row Applied.
-async function applyJob(id) {
-  const r = BYID[id] || {};
-  const link = r.link;
-  // 1) Open the posting (user-gesture window.open is not popup-blocked).
-  if (link) {
-    const w = window.open(link, "_blank");
-    if (!w && confirm("Popup blocked. Open the job posting in this tab?")) {
-      window.location.href = link;
-    }
-  } else {
-    alert("No job posting link on file for this row, so there is nothing to open.");
-  }
-  // 2) Surface the tailored docs for this role (non-fatal if missing/blocked).
-  try {
-    const rr = await fetch("/api/resume?record_id=" + id);
-    const rd = await rr.json();
-    if (rd.ok && rd.url) {
-      const w2 = window.open(rd.url, "_blank");
-      if (!w2) { /* blocked; the Resume button can still open it */ }
-    }
-  } catch (e) { /* non-fatal */ }
-  // 3) Mark the row Applied (only when a posting existed to open).
-  if (link) {
-    try { await act("mark_applied", id); } catch (e) { /* act surfaces its own errors */ }
-  }
-}
-
-async function viewResume(id) {
-  // Open a blank tab synchronously within the user gesture so popup blockers
-  // allow it, then fill it once we know the attachment URL.
-  const w = window.open("", "_blank");
-  let d;
-  try {
-    const r = await fetch("/api/resume?record_id=" + id);
-    d = await r.json();
-  } catch (e) {
-    if (w) w.close();
-    return alert("Could not load resume: " + e.message);
-  }
-  if (d.ok && d.url) {
-    if (w) { w.location.href = d.url; }
-    else { window.location.href = d.url; } // blocked -> navigate in place
-  } else {
-    if (w) w.close();
-    alert("No resume attached yet for this row.");
-  }
+  if (!r.link) { e.preventDefault(); alert("No job posting link on file for this row."); return; }
+  // let the anchor navigate; mark Applied without awaiting (fire-and-forget)
+  fetch("/api/action", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "mark_applied", record_id: id }),
+  }).catch(() => {});
 }
 
 function esc(s) {
