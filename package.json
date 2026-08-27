@@ -1,0 +1,9 @@
+{
+  "name": "akasm-jobsearch-dashboard",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Raphael Merchant job-search dashboard — live Vercel + Airtable",
+  "scripts": {
+    "start": "vercel dev"
+  }
+}
