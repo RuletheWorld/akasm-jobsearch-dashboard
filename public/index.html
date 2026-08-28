@@ -83,6 +83,15 @@ body {
         <option value="All">All</option>
       </select>
     </label>
+    <label class="flt">Province
+      <select id="province" onchange="PROVINCE=this.value; load()">
+        <option value="ON" selected>Ontario</option>
+        <option value="BC">BC</option>
+        <option value="AB">Alberta</option>
+        <option value="Other">Other / Unknown</option>
+        <option value="All">All</option>
+      </select>
+    </label>
     <button class="btn" onclick="load()">&#8635; Refresh</button>
     <button class="btn btn-primary" onclick="runPipeline()">Run search</button>
   </div>
@@ -100,6 +109,7 @@ const ACTION_LABEL = { mark_applied: "Apply", mark_interviewing: "Interviewing",
 // raw URLs (which break onclick attributes). Populated in card().
 let BYID = {};
 let COUNTRY = "Canada";  // default: only Canada-applyable roles (PR holder)
+let PROVINCE = "ON";     // default: Ontario (GTA-based)
 
 // Derive a coarse country bucket from the location string.
 function countryOf(loc) {
@@ -107,6 +117,15 @@ function countryOf(loc) {
   if (/AU|NZ|UK|AUCKLAND|SYDNEY|MELBOURNE|BRISBANE|LONDON/.test(s)) return "Outside Canada";
   if (/ON|BC|AB|MB|SK|NB|NS|NL|PE|QC|YT|NT|NU|TORONTO|VANCOUVER|CALGARY|OTTAWA|MONTREAL|CANADA/.test(s)) return "Canada";
   return "Unknown";
+}
+
+// Derive province bucket from the location string.
+function provinceOf(loc) {
+  const s = (loc || "").toUpperCase();
+  if (/\bON\b|TORONTO|OTTAWA|HAMILTON|MISSISSAUGA|BRAMPTON|LONDON ON|KITCHENER|WATERLOO/.test(s)) return "ON";
+  if (/\bBC\b|VANCOUVER|VICTORIA/.test(s)) return "BC";
+  if (/\bAB\b|CALGARY|EDMONTON/.test(s)) return "AB";
+  return "Other";
 }
 
 function fitNum(r) { return parseInt(r.fit, 10) || -1; }
@@ -124,6 +143,8 @@ async function load() {
   if (!data.ok) return showErr(data.error || "Failed to load");
   let records = data.records;
   if (COUNTRY !== "All") records = records.filter((r) => countryOf(r.location) === COUNTRY);
+  if (PROVINCE !== "All" && COUNTRY !== "Outside Canada")
+    records = records.filter((r) => provinceOf(r.location) === PROVINCE);
   render(records);
 }
 
