@@ -24,7 +24,11 @@ body {
   border-bottom: 2.5px solid var(--action); padding-bottom: 14px; margin-bottom: 8px; flex-wrap: wrap; }
 .hdr-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
 .hdr-sub { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 5px; }
-.ctrls { display: flex; gap: 8px; }
+.ctrls { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.flt { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  display: flex; flex-direction: column; gap: 3px; }
+.flt select { background: var(--card2); color: var(--bone); border: 1px solid var(--rule);
+  border-radius: 6px; padding: 6px 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .btn { background: var(--card2); color: var(--bone); border: 1px solid var(--rule);
   border-radius: 6px; padding: 7px 13px; font-size: 12px; cursor: pointer; font-weight: 600; }
 .btn:hover { border-color: var(--bone); }
@@ -71,6 +75,14 @@ body {
     <div class="hdr-sub" id="sub">loading…</div>
   </div>
   <div class="ctrls">
+    <label class="flt">Country
+      <select id="country" onchange="COUNTRY=this.value; load()">
+        <option value="Canada" selected>Canada</option>
+        <option value="Outside Canada">Outside Canada</option>
+        <option value="Unknown">Unknown</option>
+        <option value="All">All</option>
+      </select>
+    </label>
     <button class="btn" onclick="load()">&#8635; Refresh</button>
     <button class="btn btn-primary" onclick="runPipeline()">Run search</button>
   </div>
@@ -87,6 +99,17 @@ const ACTION_LABEL = { mark_applied: "Apply", mark_interviewing: "Interviewing",
 // Lookup map so handlers can read a row's link/attachment without embedding
 // raw URLs (which break onclick attributes). Populated in card().
 let BYID = {};
+let COUNTRY = "Canada";  // default: only Canada-applyable roles (PR holder)
+
+// Derive a coarse country bucket from the location string.
+function countryOf(loc) {
+  const s = (loc || "").toUpperCase();
+  if (/AU|NZ|UK|AUCKLAND|SYDNEY|MELBOURNE|BRISBANE|LONDON/.test(s)) return "Outside Canada";
+  if (/ON|BC|AB|MB|SK|NB|NS|NL|PE|QC|YT|NT|NU|TORONTO|VANCOUVER|CALGARY|OTTAWA|MONTREAL|CANADA/.test(s)) return "Canada";
+  return "Unknown";
+}
+
+function fitNum(r) { return parseInt(r.fit, 10) || -1; }
 
 async function load() {
   document.getElementById("err").innerHTML = "";
@@ -99,7 +122,9 @@ async function load() {
     return showErr("Network error: " + e.message);
   }
   if (!data.ok) return showErr(data.error || "Failed to load");
-  render(data.records);
+  let records = data.records;
+  if (COUNTRY !== "All") records = records.filter((r) => countryOf(r.location) === COUNTRY);
+  render(records);
 }
 
 function showErr(msg) {
@@ -109,6 +134,8 @@ function showErr(msg) {
 function byStatus(records) {
   const g = {}; STATUSES.forEach((s) => (g[s] = []));
   records.forEach((r) => { (g[r.status] || (g[r.status] = [])).push(r); });
+  // best-fit first within each status group
+  Object.values(g).forEach((arr) => arr.sort((a, b) => fitNum(b) - fitNum(a)));
   return g;
 }
 
